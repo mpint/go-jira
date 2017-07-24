@@ -27,13 +27,13 @@ const defaultDebugTemplate = "{{ . | toJson}}\n"
 
 const defaultListTemplate = "{{ range .issues }}{{ .key | append \":\" | printf \"%-12s\"}} {{ .fields.summary }}\n{{ end }}"
 
-const defaultTableTemplate = `+{{ "-" | rep 16 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
-| {{ "Issue" | printf "%-14s" }} | {{ "Summary" | printf "%-55s" }} | {{ "Priority" | printf "%-12s" }} | {{ "Status" | printf "%-12s" }} | {{ "Age" | printf "%-10s" }} | {{ "Reporter" | printf "%-12s" }} | {{ "Assignee" | printf "%-12s" }} |
-+{{ "-" | rep 16 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
+const defaultTableTemplate = `+{{ "-" | rep 12 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
+| {{ "Issue" | printf "%-10s" }} | {{ "Summary" | printf "%-55s" }} | {{ "Priority" | printf "%-12s" }} | {{ "Status" | printf "%-12s" }} | {{ "Age" | printf "%-10s" }} | {{ "Reporter" | printf "%-12s" }} | {{ "Assignee" | printf "%-12s" }} | {{ "Jira URL" | printf "%-12s" }} | {{ "Stash URL" | printf "%-12s" }} |
++{{ "-" | rep 12 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
 {{ range .issues -}}
-  | {{ .key | printf "%-14s"}} | {{ .fields.summary | abbrev 55 | printf "%-55s" }} | {{.fields.priority.name | printf "%-12s" }} | {{.fields.status.name | printf "%-12s" }} | {{.fields.created | age | printf "%-10s" }} | {{if .fields.reporter}}{{ .fields.reporter.name | printf "%-12s"}}{{else}}<unassigned>{{end}} | {{if .fields.assignee }}{{.fields.assignee.name | printf "%-12s" }}{{else}}<unassigned> {{end}} |
+  | {{ .key | printf "%-10s"}} | {{ .fields.summary | abbrev 55 | printf "%-55s" }} | {{.fields.priority.name | printf "%-12s" }} | {{.fields.status.name | printf "%-12s" }} | {{.fields.created | age | printf "%-10s" }} | {{if .fields.reporter}}{{ .fields.reporter.name | printf "%-12s"}}{{else}}<unassigned>{{end}} | {{if .fields.assignee }}{{.fields.assignee.name | printf "%-12s" }}{{else}}<unassigned> {{end}} | {{ .bitlyLink.JiraLink.URL | printf "%-12s" }} | {{ .bitlyLink.StashLink.URL | printf "%-12s" }} |
 {{ end -}}
-+{{ "-" | rep 16 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
++{{ "-" | rep 12 }}+{{ "-" | rep 57 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 12 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+{{ "-" | rep 14 }}+
 `
 
 const defaultViewTemplate = `{{/* view template */ -}}

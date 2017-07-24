@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/coryb/optigo"
+	"github.com/mpint/go-bitly"
 	"gopkg.in/Netflix-Skunkworks/go-jira.v0"
 	"gopkg.in/coryb/yaml.v2"
 	"gopkg.in/op/go-logging.v1"
@@ -313,6 +314,9 @@ Command Options:
 
 	c := jira.New(opts)
 
+	bitlyAccessToken := bitly.Authenticate("productstrategy", "yK9#rA^&JuNu*S7ghWkepRyc76yU#C@ymPqy^*uCxCHEE7ZWKO")
+	b := bitly.New(bitlyAccessToken)
+
 	log.Debugf("opts: %s", opts)
 
 	setEditing := func(dflt bool) {
@@ -352,7 +356,7 @@ Command Options:
 	case "fields":
 		err = c.CmdFields()
 	case "list":
-		err = c.CmdList()
+		err = c.CmdList(b)
 	case "edit":
 		setEditing(true)
 		if len(args) > 0 {

@@ -274,6 +274,9 @@ func getLookedUpTemplate(name string, dflt string) string {
 }
 
 func (c *Cli) getTemplate(name string) string {
+	if name == "list" {
+		return getLookedUpTemplate(name, allTemplates["table"])	
+	}
 	if override, ok := c.opts["template"].(string); ok {
 		if _, err := os.Stat(override); err == nil {
 			return readFile(override)
