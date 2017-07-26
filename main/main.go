@@ -56,7 +56,7 @@ func main() {
 		}
 		output := fmt.Sprintf(`
 Usage:
-  jira (ls|list) <Query Options> 
+  jira (ls|list) <Query Options>
   jira view ISSUE
   jira worklog ISSUE
   jira add worklog ISSUE <Worklog Options>
@@ -91,8 +91,8 @@ Usage:
   jira editmeta ISSUE
   jira add component [-p PROJECT] NAME DESCRIPTION LEAD
   jira components [-p PROJECT]
-  jira issuetypes [-p PROJECT] 
-  jira createmeta [-p PROJECT] [-i ISSUETYPE] 
+  jira issuetypes [-p PROJECT]
+  jira createmeta [-p PROJECT] [-i ISSUETYPE]
   jira transitions ISSUE
   jira export-templates [-d DIR] [-t template]
   jira (b|browse) ISSUE
@@ -249,6 +249,7 @@ Command Options:
 		"m|comment=s":           setopt,
 		"d|dir|directory=s":     setopt,
 		"M|method=s":            setopt,
+		"R|repo":			           setopt,
 		"S|saveFile=s":          setopt,
 		"T|time-spent=s":        setopt,
 		"Q|quiet":               setopt,

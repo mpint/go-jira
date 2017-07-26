@@ -275,7 +275,7 @@ func getLookedUpTemplate(name string, dflt string) string {
 
 func (c *Cli) getTemplate(name string) string {
 	if name == "list" {
-		return getLookedUpTemplate(name, allTemplates["table"])	
+		return getLookedUpTemplate(name, allTemplates["table"])
 	}
 	if override, ok := c.opts["template"].(string); ok {
 		if _, err := os.Stat(override); err == nil {
@@ -450,14 +450,32 @@ func (c *Cli) editTemplate(template string, tmpFilePrefix string, templateData m
 // Browse will open up your default browser to the provided issue
 func (c *Cli) Browse(issue string) error {
 	if val, ok := c.opts["browse"].(bool); ok && val {
-		if runtime.GOOS == "darwin" {
-			return exec.Command("open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
-		} else if runtime.GOOS == "linux" {
-			return exec.Command("xdg-open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
-		} else if runtime.GOOS == "windows" {
-			return exec.Command("cmd", "/c", "start", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+		isRepoFlagSet := c.GetOptBool("repo", false)
+
+		if isRepoFlagSet {
+			u, _ := url.Parse("https://stash.cfops.it/projects/APPS/repos/app/browse")
+			q := u.Query()
+			q.Set("at", "refs/heads/" + issue)
+			u.RawQuery = q.Encode()
+
+			if runtime.GOOS == "darwin" {
+				return exec.Command("open", u.String()).Run()
+			} else if runtime.GOOS == "linux" {
+				return exec.Command("xdg-open", u.String()).Run()
+			} else if runtime.GOOS == "windows" {
+				return exec.Command("cmd", "/c", "start", u.String()).Run()
+			}
+		} else {
+			if runtime.GOOS == "darwin" {
+				return exec.Command("open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+			} else if runtime.GOOS == "linux" {
+				return exec.Command("xdg-open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+			} else if runtime.GOOS == "windows" {
+				return exec.Command("cmd", "/c", "start", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+			}
 		}
 	}
+
 	return nil
 }
 
