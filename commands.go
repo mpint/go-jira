@@ -9,10 +9,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"github.com/mpint/go-bitly"
 
 	"gopkg.in/Netflix-Skunkworks/go-jira.v0/data"
-	"github.com/davecgh/go-spew/spew"
 	// "github.com/kr/pretty"
 )
 
@@ -92,19 +90,13 @@ func (c *Cli) CmdFields() error {
 	return runTemplate(c.getTemplate("fields"), data, nil)
 }
 
-// CmdList will query jira and send data to "list" template
-func (c *Cli) CmdList(b *bitly.Client) error {
+func (c *Cli) CmdList() error {
 	log.Debugf("list called")
 	data, err := c.FindIssues()
 	if err != nil {
 		return err
 	}
-	
-	extendedData, _ := c.ExtendLinksWithBitly(b, data)
-
-	spew.Dump()
-
-	return runTemplate(c.getTemplate("list"), extendedData, nil)
+	return runTemplate(c.getTemplate("list"), data, nil)
 }
 
 // CmdView will get issue data and send to "view" template

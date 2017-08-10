@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/coryb/optigo"
-	"github.com/mpint/go-bitly"
 	"gopkg.in/Netflix-Skunkworks/go-jira.v0"
 	"gopkg.in/coryb/yaml.v2"
 	"gopkg.in/op/go-logging.v1"
@@ -96,6 +95,8 @@ Usage:
   jira transitions ISSUE
   jira export-templates [-d DIR] [-t template]
   jira (b|browse) ISSUE
+  jira (pr|pullrequest) PROJECT/REPO
+  jira (repo|repository) PROJECT/REPO/[BRANCH]
   jira login
   jira logout
   jira request [-M METHOD] URI [DATA]
@@ -188,6 +189,10 @@ Command Options:
 		"transitions":      "transitions",
 		"export-templates": "export-templates",
 		"browse":           "browse",
+		"pullrequest":      "pullrequest",
+		"pr":               "pullrequest",
+		"repo":             "repository",
+		"repository":       "repository",
 		"login":            "login",
 		"logout":           "logout",
 		"req":              "request",
@@ -228,6 +233,7 @@ Command Options:
 		"editor=s":              setopt,
 		"u|user=s":              setopt,
 		"endpoint=s":            setopt,
+		"stashEndpoint=s":       setopt,
 		"k|insecure":            setopt,
 		"t|template=s":          setopt,
 		"q|query=s":             setopt,
@@ -249,7 +255,6 @@ Command Options:
 		"m|comment=s":           setopt,
 		"d|dir|directory=s":     setopt,
 		"M|method=s":            setopt,
-		"R|repo":			           setopt,
 		"S|saveFile=s":          setopt,
 		"T|time-spent=s":        setopt,
 		"Q|quiet":               setopt,
@@ -315,8 +320,6 @@ Command Options:
 
 	c := jira.New(opts)
 
-	bitlyAccessToken := bitly.Authenticate("productstrategy", "yK9#rA^&JuNu*S7ghWkepRyc76yU#C@ymPqy^*uCxCHEE7ZWKO")
-	b := bitly.New(bitlyAccessToken)
 
 	log.Debugf("opts: %s", opts)
 
@@ -357,7 +360,7 @@ Command Options:
 	case "fields":
 		err = c.CmdFields()
 	case "list":
-		err = c.CmdList(b)
+		err = c.CmdList()
 	case "edit":
 		setEditing(true)
 		if len(args) > 0 {
@@ -508,6 +511,15 @@ Command Options:
 		requireArgs(1)
 		opts["browse"] = true
 		err = c.Browse(args[0])
+	case "pullrequest":
+		requireArgs(1)
+		opts["pullrequest"] = true
+		err = c.BrowsePullRequest(args[0])
+	case "repository":
+		requireArgs(1)
+		opts["repository"] = true
+
+		err = c.BrowseRepository(args[0])
 	case "export-templates":
 		err = c.CmdExportTemplates()
 	case "assign":

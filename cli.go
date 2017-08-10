@@ -15,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,10 +32,11 @@ var (
 
 // Cli is go-jira client object
 type Cli struct {
-	endpoint   *url.URL
-	opts       map[string]interface{}
-	cookieFile string
-	ua         *http.Client
+	endpoint      *url.URL
+	stashEndpoint *url.URL
+	opts          map[string]interface{}
+	cookieFile    string
+	ua            *http.Client
 }
 
 // New creates go-jira client object
@@ -42,7 +44,9 @@ func New(opts map[string]interface{}) *Cli {
 	homedir := homedir()
 	cookieJar, _ := cookiejar.New(nil)
 	endpoint, _ := opts["endpoint"].(string)
+	stashEndpoint, _ := opts["stashEndpoint"].(string)
 	url, _ := url.Parse(strings.TrimRight(endpoint, "/"))
+	stashUrl, _ := url.Parse(strings.TrimRight(stashEndpoint, "/"))
 
 	if project, ok := opts["project"].(string); ok {
 		opts["project"] = strings.ToUpper(project)
@@ -70,10 +74,11 @@ func New(opts map[string]interface{}) *Cli {
 	}
 
 	cli := &Cli{
-		endpoint:   url,
-		opts:       opts,
-		cookieFile: filepath.Join(homedir, ".jira.d", "cookies.js"),
-		ua:         ua,
+		endpoint:      url,
+		stashEndpoint: stashUrl,
+		opts:          opts,
+		cookieFile:    filepath.Join(homedir, ".jira.d", "cookies.js"),
+		ua:            ua,
 	}
 
 	cli.ua.Jar.SetCookies(url, cli.loadCookies())
@@ -213,7 +218,6 @@ func (c *Cli) get(uri string) (resp *http.Response, err error) {
 func (c *Cli) makeRequest(req *http.Request) (resp *http.Response, err error) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-
 	if source, ok := c.opts["password-source"]; ok && !strings.HasSuffix(req.URL.Path, "/rest/auth/1/session") {
 		user, _ := c.opts["user"].(string)
 		password := c.GetPass(user)
@@ -450,29 +454,118 @@ func (c *Cli) editTemplate(template string, tmpFilePrefix string, templateData m
 // Browse will open up your default browser to the provided issue
 func (c *Cli) Browse(issue string) error {
 	if val, ok := c.opts["browse"].(bool); ok && val {
-		isRepoFlagSet := c.GetOptBool("repo", false)
+		if runtime.GOOS == "darwin" {
+			return exec.Command("open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+		} else if runtime.GOOS == "linux" {
+			return exec.Command("xdg-open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+		} else if runtime.GOOS == "windows" {
+			return exec.Command("cmd", "/c", "start", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
+		}
+	}
 
-		if isRepoFlagSet {
-			u, _ := url.Parse("https://stash.cfops.it/projects/APPS/repos/app/browse")
-			q := u.Query()
-			q.Set("at", "refs/heads/" + issue)
-			u.RawQuery = q.Encode()
+	return nil
+}
 
-			if runtime.GOOS == "darwin" {
-				return exec.Command("open", u.String()).Run()
-			} else if runtime.GOOS == "linux" {
-				return exec.Command("xdg-open", u.String()).Run()
-			} else if runtime.GOOS == "windows" {
-				return exec.Command("cmd", "/c", "start", u.String()).Run()
+func (c *Cli) BrowseRepository(path string) error {
+	if val, ok := c.opts["repository"].(bool); ok && val {
+		pathParts := strings.Split(path, "/")
+		notEnoughArgs := len(pathParts) < 2
+
+		if notEnoughArgs || pathParts[1] == "" {
+			log.Errorf("Incorrect path format. try 'jira repo apps/app' or 'jira repo apps/app/APP-1776'")
+			os.Exit(1)
+		}
+
+		var project, repo, branch string
+		isDefaultBranch := len(pathParts) == 2
+		isFeatureBranch := len(pathParts) == 3
+
+		if isDefaultBranch {
+			project = pathParts[0]
+			repo = pathParts[1]
+
+		} else if isFeatureBranch {
+			project = pathParts[0]
+			repo = pathParts[1]
+			branch = pathParts[2]
+		}
+
+		u, _ := url.Parse(fmt.Sprintf("https://stash.cfops.it/projects/%s/repos/%s/browse", project, repo))
+		q := u.Query()
+
+		if isFeatureBranch && branch != "" {
+			q.Set("at", "refs/heads/"+ branch)
+		}
+
+		u.RawQuery = q.Encode()
+
+		if runtime.GOOS == "darwin" {
+			return exec.Command("open", u.String()).Run()
+		} else if runtime.GOOS == "linux" {
+			return exec.Command("xdg-open", u.String()).Run()
+		} else if runtime.GOOS == "windows" {
+			return exec.Command("cmd", "/c", "start", u.String()).Run()
+		}
+	}
+
+	return nil
+}
+
+func (c *Cli) BrowsePullRequest(path string) error {
+	if val, ok := c.opts["pullrequest"].(bool); ok && val {
+		if _, stashEndpointOk := c.opts["stashEndpoint"]; !stashEndpointOk {
+			log.Errorf("stashEndpoint option required.  Either use --stashEndpoint or set a stashEndpoint option in your ~/.jira.d/config.yml file")
+			os.Exit(1)
+		}
+
+		pathParts := strings.Split(path, "/")
+		notEnoughArgs := len(pathParts) < 2
+
+		if notEnoughArgs || pathParts[1] == "" {
+			log.Errorf("Incorrect path format. try 'jira repo apps/app' or 'jira repo apps/app/APP-1776'")
+			os.Exit(1)
+		}
+
+		var project, repo, branch string
+		isDefaultBranch := len(pathParts) == 2
+		isFeatureBranch := len(pathParts) == 3
+
+		if isDefaultBranch {
+			project = pathParts[0]
+			repo = pathParts[1]
+
+		} else if isFeatureBranch {
+			project = pathParts[0]
+			repo = pathParts[1]
+			branch = pathParts[2]
+		}
+
+		resp, err := c.ViewRepoPullRequests(project, repo)
+		if err != nil {
+			panic(err)
+		}
+
+		dat := resp.(map[string]interface{})
+
+		var prIdString string
+		for _, pr := range dat["values"].([]interface{}) {
+			fromRef := pr.(map[string]interface{})["fromRef"]
+			branchName := fromRef.(map[string]interface{})["displayId"]
+
+			if branchName.(string) == branch {
+				prIdFloat := pr.(map[string]interface{})["id"].(float64)
+				prIdString = strconv.FormatFloat(prIdFloat, 'f', -1, 64)
+
+				break
 			}
-		} else {
-			if runtime.GOOS == "darwin" {
-				return exec.Command("open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
-			} else if runtime.GOOS == "linux" {
-				return exec.Command("xdg-open", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
-			} else if runtime.GOOS == "windows" {
-				return exec.Command("cmd", "/c", "start", fmt.Sprintf("%s/browse/%s", c.endpoint, issue)).Run()
-			}
+		}
+
+		if runtime.GOOS == "darwin" {
+			return exec.Command("open", fmt.Sprintf("%s/projects/%s/repos/%s/pull-requests/%s", c.stashEndpoint, project, repo, prIdString)).Run()
+		} else if runtime.GOOS == "linux" {
+			return exec.Command("xdg-open", fmt.Sprintf("%s/projects/%s/repos/%s/pull-requests/%s", c.stashEndpoint, project, repo, prIdString)).Run()
+		} else if runtime.GOOS == "windows" {
+			return exec.Command("cmd", "/c", "start", fmt.Sprintf("%s/projects/%s/repos/%s/pull-requests/%s", c.stashEndpoint, project, repo, prIdString)).Run()
 		}
 	}
 
@@ -490,6 +583,16 @@ func (c *Cli) SaveData(data interface{}) error {
 // ViewIssueWorkLogs gets the worklog data for the given issue
 func (c *Cli) ViewIssueWorkLogs(issue string) (interface{}, error) {
 	uri := fmt.Sprintf("%s/rest/api/2/issue/%s/worklog", c.endpoint, issue)
+	data, err := responseToJSON(c.get(uri))
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// ViewStashInfo gets the worklog data for the given issue
+func (c *Cli) ViewRepoPullRequests(project string, repo string) (interface{}, error) {
+	uri := fmt.Sprintf("%s/rest/api/1.0/projects/%s/repos/%s/pull-requests", c.stashEndpoint, project, repo)
 	data, err := responseToJSON(c.get(uri))
 	if err != nil {
 		return nil, err

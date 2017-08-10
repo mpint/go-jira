@@ -16,6 +16,10 @@ func (c *Cli) GetPass(user string) string {
 			var err error
 			passwd, err = keyringGet(user)
 			if err != nil {
+				log.Warningf("A few things could be wrong:")
+				log.Warningf("If you're using keyring entry, you may have forgotten to set it up")
+				log.Warningf("You didn't supply a user (-u) flag or set your user in ~/.jira.d/config.yml")
+				log.Warningf("<insert useful wiki page here>")
 				panic(err)
 			}
 		} else if source == "pass" {
